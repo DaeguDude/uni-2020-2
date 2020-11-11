@@ -1,0 +1,58 @@
+######## 표본평균 vs. 표준화된 표본평균 
+# 표본평균
+n<-10; mu<-100; sig<-10; N<-10000
+# 모의실험 10,000회 반복
+set.seed(1234)
+xb <- zb <- xx <- ss <- NULL
+for(k in 1:N) xb <- c(xb, mean(rnorm(n, mu, sig)))
+# 표준화
+zb <- (xb-mu)/sig*sqrt(n)
+# 모집단 및 표본평균 분포함수 정의
+popd <- function(x) dnorm(x, mu, sig)
+smd <- function(x) dnorm(x, mu, sig/sqrt(n))
+
+# 그래프
+win.graph(7,6)
+par(mfrow=c(2,1))
+hist(xb, breaks=seq(from=70, to=130, length.out=50), prob=T, col=7, main="N(100,100)에서 샘플링한 10개 표본평균의 분포", ylab="f(x)")
+curve(popd, 70, 130, col=4, add=T)
+curve(smd, 70, 130, col=2, add=T)
+
+# 표준화 통계량 분포
+hist(zb, breaks=seq(from=-5, to=5, length.out=50), prob=T, col="cyan", main="표준화한 표본평균의 분포", ylab="f(x)")
+curve(dnorm, -4, 4, col=2, add=T)
+
+
+######## Baseline characteristics
+setwd("folder_path")
+data <- read.csv("5장_Table1_data.csv", header=TRUE)
+head(data)
+
+# install.packages("tableone")
+library(tableone)
+
+catVars <- c("Gender", "Smoking", "Education")
+
+# 1) Total population
+listVars <- names(data)
+(table1 <- CreateTableOne(vars=listVars, data=data, factorVars=catVars))
+
+# 2) By the 'Gender' variable
+listVars <- names(data)[-2] # remove group variable 'Gender'
+(table2 <- CreateTableOne(listVars, data, catVars, strata=c("Gender")))
+print(table2, showAllLevels = TRUE)
+summary(table2)
+print(table2, nonnormal="BMI")
+print(table2, nonnormal="BMI", smd=TRUE)
+print(table2, nonnormal="BMI", smd=TRUE, exact="Smoking", missing=TRUE)
+
+#
+aggregate(Age ~ Gender, data=data, FUN=mean)
+aggregate(Age ~ Gender, data=data, FUN=sd)
+aggregate(Age ~ Gender, data=data, FUN=summary)
+
+table(data$Smoking, data$Gender)
+prop.table(table(data$Smoking, data$Gender),2)
+
+### Export Table1 from R to .csv
+write.csv(print(table2, nonnormal="BMI", smd=TRUE, quote=FALSE, noSpaces=TRUE), "result.csv", row.names=TRUE)
